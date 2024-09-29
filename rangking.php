@@ -39,7 +39,7 @@ $stmt = $pro->readKhusus();
 		                <th width="30px">No</th>
 		                <th>Alternatif</th>
 		                <th>Kriteria</th>
-		                <th>Nilai</th>
+						<th>Bobot Nilai</th>
 		                <th width="100px">Aksi</th>
 		            </tr>
 		        </thead>
@@ -55,7 +55,7 @@ $stmt = $pro->readKhusus();
 		                <td><?php echo $no++ ?></td>
 		                <td><?php echo $row['nama_alternatif'] ?></td>
 		                <td><?php echo $row['nama_kriteria'] ?></td>
-		                <td><?php echo $row['nilai_rangking'] ?></td>
+						<td><?php echo $row['bobot_subkriteria'] ?? 'N/A' ?></td>
 		                <td class="text-center">
 							<a href="rangking-ubah.php?ia=<?php echo $row['id_alternatif'] ?>&ik=<?php echo $row['id_kriteria'] ?>" class="btn btn-warning"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a>
 							<a href="rangking-hapus.php?ia=<?php echo $row['id_alternatif'] ?>&ik=<?php echo $row['id_kriteria'] ?>" onclick="return confirm('Yakin ingin menghapus data')" class="btn btn-danger"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a>
@@ -148,6 +148,18 @@ $stmt = $pro->readKhusus();
 	  </div>
 	
 	</div>
+	$stmt = $pro->readKhusus();
+
+if (!$stmt) {
+    echo "Query preparation failed: " . implode(" ", $pro->conn->errorInfo());
+} else {
+    $stmt->execute();
+    if ($stmt->errorCode() !== '00000') {
+        echo "Query execution failed: " . implode(" ", $stmt->errorInfo());
+    }
+}
+
+
 <?php
 include_once 'footer.php';
 ?>

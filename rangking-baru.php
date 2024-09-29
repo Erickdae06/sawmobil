@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 include_once 'header.php';
 include_once 'includes/alternatif.inc.php';
 $pgn1 = new Alternatif($db);
@@ -9,19 +11,27 @@ $pgn3 = new Nilai($db);
 include_once 'includes/sub_kriteria.inc.php'; // Include SubKriteria
 
 if ($_POST) {
+    var_dump($_POST); // Debugging line
     include_once 'includes/rangking.inc.php';
     $eks = new Rangking($db);
     
     $eks->ia = $_POST['ia'];
     $eks->ik = $_POST['ik'];
     $eks->sub_kriteria = $_POST['sub_kriteria'];
+    $eks->bobot_subkriteria = $_POST['weight'];
     $eks->nn = $_POST['nn'];
 
-    if ($eks->insert()) {
-        echo '<div class="alert alert-success">Berhasil Tambah Data!</div>';
-    } else {
-        echo '<div class="alert alert-danger">Gagal Tambah Data!</div>';
+    try {
+        if ($eks->insert()) {
+            header('Location: rangking.php');
+            exit;
+        } else {
+            echo '<div class="alert alert-danger">Gagal Tambah Data!</div>';
+        }
+    } catch (Exception $e) {
+        echo '<div class="alert alert-danger">Error: ' . $e->getMessage() . '</div>';
     }
+    
 }
 ?>
 
@@ -59,12 +69,12 @@ if ($_POST) {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="weight">Bobot Sub Kriteria</label>
-                    <input type="text" class="form-control" id="weight" name="weight" readonly>
-                </div>
+    <label for="bobot_nilai">Bobot Sub Kriteria</label>
+    <input type="text" class="form-control" id="weight" name="weight" readonly>
+</div>
                 <div class="form-group">
                     <label for="keterangan">Keterangan Nilai</label>
-                    <select class="form-control" id="keterangan" name="nn" disabled>
+                    <select class="form-control" id="keterangan" name="nn">
                         <option value="">Pilih Keterangan</option>
                         <option value="5">Sangat Tinggi</option>
                         <option value="4">Tinggi</option>

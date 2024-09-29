@@ -2,23 +2,27 @@
 class Rangking {
     private $conn;
     private $table_name = "rangking";
-
-    public $ia;
-    public $ik;
-    public $nn;
-    public $nn2;
-    public $nn3;
-    public $mnr1;
-    public $mnr2;
-    public $sub_kriteria;
+    public $bobot_subkriteria;
+    public $ia; // id_alternatif
+    public $ik; // id_kriteria
+    public $sub_kriteria; // sub_kriteria
+    public $nn2; // nilai_normalisasi
+    public $nn3; // bobot_normalisasi
     public $has;
+    public $nn;
 
     public function __construct($db) {
         $this->conn = $db;
     }
 
-    function insert() {
-        // Memeriksa apakah data sudah ada
+    public function insert() {
+        // Pastikan semua nilai yang diperlukan diisi
+        if (empty($this->ia) || empty($this->ik) || empty($this->sub_kriteria) || empty($this->bobot_subkriteria)) {
+            echo "Error: All fields must be filled.";
+            return false;
+        }
+
+        // Check if data already exists
         $query = "SELECT COUNT(*) FROM " . $this->table_name . " WHERE id_alternatif = :id_alternatif AND id_kriteria = :id_kriteria";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':id_alternatif', $this->ia);
@@ -26,19 +30,23 @@ class Rangking {
         $stmt->execute();
 
         if ($stmt->fetchColumn() > 0) {
-            // Jika data sudah ada, lakukan update
+            // Update if data exists
             return $this->update();
         } else {
-            // Jika data belum ada, lakukan insert
-            $query = "INSERT INTO " . $this->table_name . " (id_alternatif, id_kriteria, nilai_rangking) VALUES (:id_alternatif, :id_kriteria, :nilai_rangking)";
+            // Insert new data
+            $query = "INSERT INTO " . $this->table_name . " (id_alternatif, id_kriteria, sub_kriteria, bobot_subkriteria) VALUES (:id_alternatif, :id_kriteria, :sub_kriteria, :bobot_subkriteria)";
             $stmt = $this->conn->prepare($query);
+
+            // Bind parameters
             $stmt->bindParam(':id_alternatif', $this->ia);
             $stmt->bindParam(':id_kriteria', $this->ik);
-            $stmt->bindParam(':nilai_rangking', $this->nn);
+            $stmt->bindParam(':sub_kriteria', $this->sub_kriteria);
+            $stmt->bindParam(':bobot_subkriteria', $this->bobot_subkriteria);
 
             if ($stmt->execute()) {
                 return true;
             } else {
+                echo 'Insert error: ' . implode(" ", $stmt->errorInfo());
                 return false;
             }
         }
@@ -52,9 +60,38 @@ class Rangking {
     }
 
     function readKhusus() {
-        $query = "SELECT * FROM alternatif a, kriteria b, rangking c WHERE a.id_alternatif = c.id_alternatif AND b.id_kriteria = c.id_kriteria ORDER BY a.id_alternatif ASC";
+        $query = "
+            SELECT 
+                a.id_alternatif, 
+                a.nama_alternatif, 
+                b.id_kriteria, 
+                b.nama_kriteria, 
+                c.sub_kriteria, 
+                c.bobot_subkriteria, 
+                c.nilai_normalisasi, 
+                c.bobot_normalisasi 
+            FROM 
+                alternatif a 
+            JOIN 
+                rangking c ON a.id_alternatif = c.id_alternatif
+            JOIN 
+                kriteria b ON b.id_kriteria = c.id_kriteria
+            ORDER BY 
+                a.id_alternatif ASC
+        ";
+
         $stmt = $this->conn->prepare($query);
-        $stmt->execute();
+        
+        if (!$stmt) {
+            echo "Query preparation failed: " . implode(" ", $this->conn->errorInfo());
+            return false;
+        }
+    
+        if (!$stmt->execute()) {
+            echo "Query execution failed: " . implode(" ", $stmt->errorInfo());
+            return false;
+        }
+    
         return $stmt;
     }
 
@@ -67,7 +104,7 @@ class Rangking {
     }
 
     function readMax($b) {
-        $query = "SELECT max(nilai_rangking) as mnr1 FROM " . $this->table_name . " WHERE id_kriteria = ? LIMIT 1";
+        $query = "SELECT max(bobot_subkriteria) as mnr1 FROM " . $this->table_name . " WHERE id_kriteria = ? LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $b);
         $stmt->execute();
@@ -75,7 +112,7 @@ class Rangking {
     }
 
     function readMin($b) {
-        $query = "SELECT min(nilai_rangking) as mnr2 FROM " . $this->table_name . " WHERE id_kriteria = ? LIMIT 1";
+        $query = "SELECT min(bobot_subkriteria) as mnr2 FROM " . $this->table_name . " WHERE id_kriteria = ? LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $b);
         $stmt->execute();
@@ -97,20 +134,23 @@ class Rangking {
         $stmt->bindParam(2, $this->ik);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $this->ia = $row['id_alternatif'];
-        $this->ik = $row['id_kriteria'];
-        $this->nn = $row['nilai_rangking'];
+        if ($row) {
+            $this->ia = $row['id_alternatif'];
+            $this->ik = $row['id_kriteria'];
+            $this->sub_kriteria = $row['sub_kriteria'];
+        }
     }
 
     function update() {
-        $query = "UPDATE " . $this->table_name . " SET nilai_rangking = :nn WHERE id_alternatif = :ia AND id_kriteria = :ik";
+        $query = "UPDATE " . $this->table_name . " SET bobot_subkriteria = :bobot_subkriteria WHERE id_alternatif = :ia AND id_kriteria = :ik";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':nn', $this->nn);
+        $stmt->bindParam(':bobot_subkriteria', $this->bobot_subkriteria);
         $stmt->bindParam(':ia', $this->ia);
         $stmt->bindParam(':ik', $this->ik);
         if ($stmt->execute()) {
             return true;
         } else {
+            echo 'Update error: ' . implode(" ", $stmt->errorInfo());
             return false;
         }
     }
@@ -125,6 +165,7 @@ class Rangking {
         if ($stmt->execute()) {
             return true;
         } else {
+            echo 'Normalization error: ' . implode(" ", $stmt->errorInfo());
             return false;
         }
     }
@@ -137,6 +178,7 @@ class Rangking {
         if ($stmt->execute()) {
             return true;
         } else {
+            echo 'Hasil update error: ' . implode(" ", $stmt->errorInfo());
             return false;
         }
     }
@@ -149,8 +191,10 @@ class Rangking {
         if ($stmt->execute()) {
             return true;
         } else {
+            echo 'Delete error: ' . implode(" ", $stmt->errorInfo());
             return false;
         }
     }
+    
 }
 ?>

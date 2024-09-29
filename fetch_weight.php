@@ -9,7 +9,7 @@ if (isset($_GET['sub_kriteria_id'])) {
     $stmt = $pgn->readById($subKriteriaId);
 
     if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        echo $row['bobot_subkriteria']; // Output the weight
+        echo $row['bobot_subkriteria'];
     } else {
         echo "0"; // No result found
     }
